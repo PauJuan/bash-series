@@ -47,6 +47,7 @@ Help()
   echo "a     Option to add series by folder name"
   echo "d     Directory where the new series is"
   echo "p     Watch current episody."
+  echo "P     Create a marker for a previous episode"
   echo "n     Watch next episode. (or move forward any given number)"
   echo "l     List available episodes."
   echo "L     List all media folders."
@@ -83,7 +84,7 @@ if [ $# -eq 0 ]; then
 fi
 
 # Process the input options with getops
-while getopts ":s:f:e:a:d:n:plLi:I:NuD:h" option; do
+while getopts ":s:f:e:a:d:n:pPlLi:I:NuD:h" option; do
   case $option in
     s) # Get series name
       SERIESNAME="$OPTARG" ;;
@@ -104,6 +105,8 @@ while getopts ":s:f:e:a:d:n:plLi:I:NuD:h" option; do
       ;;
     p) # Watch current episody
       ACTION="p" ;;
+    P) # Create marker for previous episode
+      ACTION="P" ;;
     l) # List available episodes
       ACTION="l" ;;
     L) # List all media folders
@@ -184,6 +187,12 @@ elif [[ $ACTION = p ]]; then
   # Start vlc player
   vlc -f "$EPISODE" &
 
+# Option for previous episode (default)
+elif [[ $ACTION = P ]]; then
+  cd "$SERIESNAME"
+  # Select previous episode
+  sed -i "1i --- Line placeholder ---" "${SERIESNAME}.txt"
+
 # Option for next episode and update list
 elif [[ $ACTION = n ]] || [[ $ACTION = N ]]; then
   cd "$SERIESNAME"
@@ -216,6 +225,8 @@ elif [[ $ACTION = a ]]; then
   find -type f | rename 's/ /_/g'
   # Create tracker file and report
   ls *.$FILETYPE > "${SERIESNAME}.txt"
+  # Add initial line for first watch
+  sed -i "1i --- Initial run ---" "${SERIESNAME}.txt"
   echo "Added $SERIESNAME to list of tracked series"
 
 # Option to update new episodes
