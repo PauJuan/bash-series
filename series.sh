@@ -192,6 +192,7 @@ elif [[ $ACTION = P ]]; then
   cd "$SERIESNAME"
   # Select previous episode
   sed -i "1i --- Line placeholder ---" "${SERIESNAME}.txt"
+  echo "Created placeholder for previous episode in $SERIESNAME"
 
 # Option for next episode and update list
 elif [[ $ACTION = n ]] || [[ $ACTION = N ]]; then
@@ -216,7 +217,10 @@ elif [[ $ACTION = a ]]; then
     echo "File extension not provided. Assuming .mkv filetype"
   fi
   if [[ ! -z "$DIRECTORY" ]]; then
-    mkdir -p $SERIESNAME
+    # Create directory if does not exist yet
+    if [[ ! -d "$DIRECTORY" ]]; then
+      mkdir -p $SERIESNAME
+    fi
     # Move all files to new directory
     mv "${DIRECTORY}"*.${FILETYPE} ./"${SERIESNAME}"
   fi
