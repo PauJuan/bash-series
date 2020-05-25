@@ -218,7 +218,7 @@ elif [[ $ACTION = a ]]; then
   fi
   if [[ ! -z "$DIRECTORY" ]]; then
     # Create directory if does not exist yet
-    if [[ ! -d "$DIRECTORY" ]]; then
+    if [[ ! -d "$SERIESNAME" ]]; then
       mkdir -p $SERIESNAME
     fi
     # Move all files to new directory
