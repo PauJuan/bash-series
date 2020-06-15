@@ -184,8 +184,9 @@ elif [[ $ACTION = p ]]; then
   cd "$SERIESNAME"
   # Select previous episode
   EPISODE=$(head -1 "${SERIESNAME}.txt")
-  # Start vlc player
+  # Start vlc player and notify the user
   vlc -f "$EPISODE" &
+  notify-send "Currently playing:" "$EPISODE"
 
 # Option for previous episode (default)
 elif [[ $ACTION = P ]]; then
@@ -208,6 +209,7 @@ elif [[ $ACTION = n ]] || [[ $ACTION = N ]]; then
   tail -n +$(($NUMBER + 1)) "${SERIESNAME}.txt" > "${SERIESNAME}.tmp" && mv "${SERIESNAME}.tmp" "${SERIESNAME}.txt"
   # Start vlc player
   vlc -f "$EPISODE" &
+  notify-send "Currently playing:" "$EPISODE"
 
 # Option to add series by folder name (automatically create .txt)
 elif [[ $ACTION = a ]]; then
