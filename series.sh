@@ -160,7 +160,7 @@ if [[ $ACTION = L ]]; then
 
 # Option to provide list of episodes available
 elif [[ $ACTION = l ]]; then
-  ls --color=always */*[^.txt] | xargs -n 1 basename | less -r
+  ls --color=always */*[^.txt] | tr '\n' '\0' | xargs -0 -n 1 basename | less -r
 
 # Option to checkout specific series
 elif [[ $ACTION = i ]]; then
