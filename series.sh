@@ -5,13 +5,14 @@
 # A simple script to automate the visualisation of digital media series        #
 #                                                                              #
 # Change History                                                               #
-# XX/XX/2018  Pau Juan-Garcia    Original code version 0.0.1 for Linux Mint    #
+# XX/XX/2017  Pau Juan-Garcia    Original code version 0.0.1 for Linux Mint    #
 # 11/04/2020  Pau Juan-Garcia    Original code version 0.1.0 for Linux Mint    #
 # 18/04/2020  Pau Juan-Garcia    Original code version 0.1.1 for Linux Mint    #
+# 07/08/2021  Pau Juan-Garcia    Original code version 0.1.2 for Linux Mint    #
 #                                                                              #
 #                                                                              #
 ################################################################################
-#  Copyright (C) 2017, 2020 Pau Juan-Garcia                                    #
+#  Copyright (C) 2017, 2021 Pau Juan-Garcia                                    #
 #  Pambientoleg@gmail.com                                                      #
 #                                                                              #
 #  This program is free software; you can redistribute it and/or modify        #
@@ -39,20 +40,21 @@ Help()
   # Display Help
   echo "Description of the script functions:"
   echo
-  echo "Syntax: series [-s:f:e:p|l|L|i:|I:|a:|n:|N|u|D:|h]"
+  echo "Syntax: series [-s:f:e:r|p|l|L|i:|I:|a:|d|P|n:|N|u|D:|h]"
   echo "options:"
   echo "s     Series name."
   echo "f     Filetype."
   echo "e     Number new episodes."
-  echo "a     Option to add series by folder name"
-  echo "d     Directory where the new series is"
+  echo "r     Play on repeat."
   echo "p     Watch current episody."
-  echo "P     Create a marker for a previous episode"
-  echo "n     Watch next episode. (or move forward any given number)"
   echo "l     List available episodes."
   echo "L     List all media folders."
   echo "i     Provide details about a specific series."
   echo "I     Provide online information about a specific series."
+  echo "a     Option to add series by folder name"
+  echo "d     Directory where the new series is"
+  echo "P     Create a marker for a previous episode"
+  echo "n     Watch next episode. (or move forward any given number)"
   echo "N     Watch next episode and delete previous."
   echo "u     Update episode folder by a certain number of episodes."
   echo "D     Delete all episodes of a specific series."
@@ -72,10 +74,21 @@ Help()
 # }
 # Or, alternatively, if the function is defined in another file:
 # source /home/paupau/Scripts/functions.sh
+# To use the repeat mode it is necessary to adjust permissions
 
 ################################################################################
 # Main program                                                                 #
 ################################################################################
+
+# Functions
+close_open_vlc () {
+  # Delete any current VLC sessions
+  session=$(pgrep vlc)
+  if [[ ! -z "$session" ]]; then
+    pgrep vlc | xargs -n1 kill -9
+  fi
+}
+
 # Check there is at least one argument
 if [ $# -eq 0 ]; then
   echo "No arguments provided"
@@ -83,8 +96,8 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-# Process the input options with getops
-while getopts ":s:f:e:a:d:n:pPlLi:I:NuD:h" option; do
+# Process the input options with getops (remember to use colons to indicate input arguments)
+while getopts ":s:f:e:a:d:n:pPrlLi:I:NuD:h" option; do
   case $option in
     s) # Get series name
       SERIESNAME="$OPTARG" ;;
@@ -107,6 +120,8 @@ while getopts ":s:f:e:a:d:n:pPlLi:I:NuD:h" option; do
       ACTION="p" ;;
     P) # Create marker for previous episode
       ACTION="P" ;;
+    r) # Get series name to play on repeat
+      REPEAT=true ;;
     l) # List available episodes
       ACTION="l" ;;
     L) # List all media folders
@@ -146,12 +161,13 @@ cd $SERIESFOLDER
 # Check the folder exists and exit with error message otherwise
 if [[ ! -z "$SERIESNAME" ]] && [[ $ACTION != "a" ]]; then
   if [[ ! -d "$SERIESNAME" ]]; then
+    # TODO This does not seem to be working
     echo "Specified series $SERIESNAME does not exist"
     exit 1
   fi
 fi
 
-# Process all options
+## Process all options
 # Option to list all Video folder
 if [[ $ACTION = L ]]; then
   cd ..
@@ -168,7 +184,7 @@ elif [[ $ACTION = i ]]; then
   # Get txt filename
   TXT_FILE=$(ls *.txt)
   # Read .txt file
-  cat < $TXT_FILE | nl
+  cat < $TXT_FILE | nl -v 0
   # Get count of remaining episodes (minus current)
   REMAINING=$(cat $TXT_FILE | wc -l)
   REMAINING=$(( $REMAINING - 1 ))
@@ -198,7 +214,7 @@ elif [[ $ACTION = P ]]; then
 # Option for next episode and update list
 elif [[ $ACTION = n ]] || [[ $ACTION = N ]]; then
   cd "$SERIESNAME"
-  # Select next episode
+  # Get next episode
   EPISODE=$(head -$(($NUMBER + 1)) "${SERIESNAME}.txt" | tail -1)
   PREV_EPISODE=$(head -1 "${SERIESNAME}.txt")
   # Delete previous epidode if desired
@@ -207,9 +223,18 @@ elif [[ $ACTION = n ]] || [[ $ACTION = N ]]; then
   fi
   # Delete previous episode from list
   tail -n +$(($NUMBER + 1)) "${SERIESNAME}.txt" > "${SERIESNAME}.tmp" && mv "${SERIESNAME}.tmp" "${SERIESNAME}.txt"
+  # Delete any current VLC sessions
+  close_open_vlc
   # Start vlc player
   vlc -f "$EPISODE" &
   notify-send "Currently playing:" "$EPISODE"
+
+  if [[ ! -z "$REPEAT" ]]; then
+    DURATION=$(ffprobe -i $EPISODE -show_entries format=duration -v quiet | grep duration | sed 's/.*=//')
+    sleep $(($DURATION + 3))
+    # Launch script recursively
+    "$0" -s $* "${SERIESNAME}" -r
+  fi
 
 # Option to add series by folder name (automatically create .txt)
 elif [[ $ACTION = a ]]; then
@@ -224,7 +249,7 @@ elif [[ $ACTION = a ]]; then
       mkdir -p $SERIESNAME
     fi
     # Move all files to new directory
-    mv "${DIRECTORY}"*.${FILETYPE} ./"${SERIESNAME}"
+    mv "${DIRECTORY}"/*.${FILETYPE} ./"${SERIESNAME}"
   fi
   cd "$SERIESNAME"
   # Rename files to get rid of spaces if any
