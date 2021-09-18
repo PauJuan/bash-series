@@ -229,6 +229,7 @@ elif [[ $ACTION = n ]] || [[ $ACTION = N ]]; then
   vlc -f "$EPISODE" &
   notify-send "Currently playing:" "$EPISODE"
 
+  # Process repeat option
   if [[ ! -z "$REPEAT" ]]; then
     DURATION=$(ffprobe -i $EPISODE -show_entries format=duration -v quiet | grep duration | sed 's/.*=//')
     sleep $(($DURATION + 3))
@@ -259,6 +260,8 @@ elif [[ $ACTION = a ]]; then
   # Add initial line for first watch
   sed -i "1i --- Initial run ---" "${SERIESNAME}.txt"
   echo "Added $SERIESNAME to list of tracked series"
+  # Launch script as info
+  "$0" -i $* "${SERIESNAME}"
 
 # Option to update new episodes
 elif [[ $ACTION = u ]]; then
